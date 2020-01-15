@@ -1,38 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
+<html>
+  <head>
     <title>Todo App</title>
     <style>
-        .hidden {
-            display: none;
-        }
+      #error {
+        display: none;
+      }
     </style>
-</head>
-<body>
-    <form method="post" action="/todos/create">
-        <input type="text", id="description" name="description"/>
-        <input type="submit", name="Create" />
+  </head>
+  <body>
+    <div id="error" class="hidden">Something went wrong!</div>
+    <form id="form" method="post" action="/todos/create">
+      <input type="text" id="description" name="description" />
+      <input type="submit" value="Create" />
     </form>
-    <div id="error" class="hidden">Something wen wromng !</div>
-    <ul>
-        {% for d in data %}
-        <li>{{d.description}}</li>
-        {% endfor %}
-
+    <ul id="todos">
+      {% for d in data %}
+      <li>{{ d.description }}</li>
+      {% endfor %}
     </ul>
-<script>
-    document.getElementById('form').onsubmit = function(e) {
+    <script>
+        document.getElementById('form').onsubmit = function(e) {
     e.preventDefault();
-    fetch('todos/create', {
-    method: 'POST',
-    body: JSON.stringify({
-        'description': document.getElementById('description').value
-    }),
-    headers: {
-            'Content-Type': 'application/json'
-            }
-    })
+    fetch('/todos/create', {
+          method: 'POST',
+          body: JSON.stringify({
+            'description': document.getElementById('description').value,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
     .then(function(response) {
     return response.json();
     })
@@ -45,8 +42,9 @@
     })
     .catch(function(){
     document.getElementById('error').className = '';
-    )
+    })
     }
-</script>
-</body>
+
+    </script>
+  </body>
 </html>
