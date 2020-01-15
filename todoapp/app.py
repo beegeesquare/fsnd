@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 # Create an application based on the name of the app
@@ -33,14 +33,15 @@ def create_todo():
     # Here "get" method gives the data in "name" type of the HTML form
     # '' (empty string) is used for default value, in case the data is missing
     # Other way of doing this is using json, 'requests.data'
-    description = request.form.get('description', '')
-    print(description)
+    description = request.get_json()['description']
     # Using this description create a new toodo object (purposefully misspelled)
     todo = Todo(description=description)
     db.session.add(todo)
     db.session.commit()
 
-    return redirect(url_for('index'))
+    return jsonify({
+    'description': todo.description
+  })
 
 
 @app.route('/')
