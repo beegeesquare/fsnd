@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
+import sys
 
 # Create an application based on the name of the app
 app = Flask(__name__)
@@ -35,14 +36,26 @@ def create_todo():
     # Other way of doing this is using json, 'requests.data'
     description = request.get_json()['description']
     # Using this description create a new toodo object (purposefully misspelled)
-    todo = Todo(description=description)
-    db.session.add(todo)
-    db.session.commit()
 
-    return jsonify({
-    'description': todo.description
-  })
+    # Add the expections
+    error = False
+    body = {}
+    try:
+        todo = Todo(description=description)
+        db.session.add(todo)
+        db.session.commit()
+        body['description'] = todo.description
+    except:
+        db.session.rollback()
+        error = True
+        print(sys.exec_info())
+    finally:
+        db.session.close()
 
+    if error:
+        abort(400)
+    else:
+        return jsonify(body)
 
 @app.route('/')
 def index():
