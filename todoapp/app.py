@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
 import sys
+from flask_migrate import Migrate
+
 
 # Create an application based on the name of the app
 app = Flask(__name__)
@@ -13,19 +15,23 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://bb4341@localhost:5432/todo
 # Start linking the database to the app
 db = SQLAlchemy(app)  # Put the name of the app here
 
+# Create a migrate class
+migrate = Migrate(app, db) # Pass the name of the app to the migrate
+
 # Now create a class that would inheret the db
 class Todo(db.Model):
     __tablename__ = 'todos' # If the table name is not given then the name of the table is the class name (ignoring case)
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(), nullable=False)
-
+    completed = db.Column(db.Boolean, nullable=False, default=False)
     # Define a dunder wrapper method for printing the rows in the table
     def __repr__(self):
         return f'<Todo: {self.id} {self.description}>'
 
 
 # Create all the models that were defined
-db.create_all()
+# We won't be using in the migration model
+# db.create_all()
 
 
 @app.route('/todos/create', methods=['POST'])
