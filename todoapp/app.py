@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
+# from sqlalchemy.sql import expression
 import sys
 from flask_migrate import Migrate
 
@@ -18,16 +19,31 @@ db = SQLAlchemy(app)  # Put the name of the app here
 # Create a migrate class
 migrate = Migrate(app, db) # Pass the name of the app to the migrate
 
+
 # Now create a class that would inheret the db
 class Todo(db.Model):
     __tablename__ = 'todos' # If the table name is not given then the name of the table is the class name (ignoring case)
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(), nullable=False)
+    # Completed need not be set to any nullable value
     completed = db.Column(db.Boolean, nullable=False, default=False)
+    # Here for now the nullable is set True, so we can run the migration
+    # This needs to be changed later
+    # Change the nullable constraint to False  after updating the table in the psql
+    list_id = db.Column(db.Integer, db.ForeignKey('todolists.id'), nullable=False)
+
     # Define a dunder wrapper method for printing the rows in the table
     def __repr__(self):
         return f'<Todo: {self.id} {self.description}>'
 
+
+# Create a todolist
+class TodoList(db.Model):
+    __tablename__ = 'todolists'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(), nullable=False)
+    # Define the relationship with todos
+    todos = db.relationship('Todo', backref='todolists', lazy=True)
 
 # Create all the models that were defined
 # We won't be using in the migration model
