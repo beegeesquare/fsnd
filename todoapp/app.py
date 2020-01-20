@@ -43,6 +43,9 @@ class TodoList(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(), nullable=False)
     # Define the relationship with todos
+    # Here the backref need not be the name of the class. It is like a method for the child class
+    # For example if we define todo1 = Todo(name='test'), then todo1.todolists = list where
+    # list = TodoLists(name='urgent')
     todos = db.relationship('Todo', backref='todolists', lazy=True)
 
 # Create all the models that were defined
@@ -111,7 +114,9 @@ def delete_todo(todo_id):
 
 @app.route('/lists/<list_id>')
 def get_todo_lists(list_id):
-    return render_template('index.html', data=Todo.query.filter_by(list_id=list_id).order_by('id').all())
+    return render_template('index.html', lists=TodoList.query.all(),
+                           active_list = TodoList.query.get(list_id),
+                           todos=Todo.query.filter_by(list_id=list_id).order_by('id').all())
 
 
 @app.route('/')
