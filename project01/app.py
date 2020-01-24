@@ -43,6 +43,8 @@ class Venue(db.Model):
     facebook_link = db.Column(db.String(120))
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
+    
+
 
 class Artist(db.Model):
     __tablename__ = 'Artist'
@@ -52,9 +54,14 @@ class Artist(db.Model):
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
+    # Here geners is defined as the string
+    # However we will be do a migration to Array
+    # To do that we need to drop the string column --> migrate
+    # Then add the ARRAY column back
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    # Adding genres
+    genres = db.Column(db.ARRAY(db.String(50)))
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
