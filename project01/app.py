@@ -180,7 +180,7 @@ def search_venues():
     # seach for Hop should return "The Musical Hop".
     # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
     ven_query = Venue.query.filter(Venue.name.ilike(r"%{0}%".format(request.form.get('search_term', ''))))
-    print(ven_query)
+    # print(ven_query)
     data = []
     for v in ven_query:
         data.append({"id": v.id, "name": v.name, "num_upcoming_shows": len(get_upcoming_shows(v))})
@@ -271,16 +271,8 @@ def delete_venue(venue_id):
 @app.route('/artists')
 def artists():
     # TODO: replace with real data returned from querying the database
-    data=[{
-      "id": 4,
-      "name": "Guns N Petals",
-    }, {
-      "id": 5,
-      "name": "Matt Quevedo",
-    }, {
-      "id": 6,
-      "name": "The Wild Sax Band",
-    }]
+    all_artists = Artist.query.all()
+    data = [{"id": art.id, "name": art.name} for art in all_artists]
     return render_template('pages/artists.html', artists=data)
 
 
