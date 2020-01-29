@@ -258,18 +258,20 @@ def create_venue_submission():
     # modify data to be the data object returned from db insertion
 
     # on successful db insert, flash success
-    print(request.form)
+    data = request.form
+
     try:
         # Convert the seeking_talent to boolean
         seeking_talent = False
-        if request.form['seeking_talent'] == 'y':
+        if data.get('seeking_talent') == 'y':
             seeking_talent = True
 
-        venue = Venue(name=request.form['name'], city=request.form['city'], state=request.form['state'],
-                      address=request.form['address'], phone=request.form['phone'], genres=request.form['genres'],
-                      facebook_link=request.form['facebook_link'], website=request.form['website'],
+        venue = Venue(name=data.get('name'), city=data.get('city'), state=data.get('state'),
+                      address=data.get('address'), phone=data.get('phone'), genres=data.getlist('genres'),
+                      facebook_link=data.get('facebook_link'), website=data.get('website'),
                       seeking_talent=seeking_talent,
-                      seeking_description=request.form['seeking_description'])
+                      seeking_description=data.get('seeking_description')
+                      )
         db.session.add(venue)
         db.session.commit()
         flash('Venue ' + request.form['name'] + ' was successfully listed!')
@@ -355,15 +357,60 @@ def edit_artist(artist_id):
     form = ArtistForm()
     # populate form with fields from artist with ID <artist_id>
     artist = Artist.query.get(artist_id)
-    return render_template('forms/edit_artist.html', form=form, artist=artist)
+    if artist: # Basically if the artist id exists in the data base
+        form.name.data = artist.name
+        form.city.data = artist.city
+        form.facebook_link.data = artist.facebook_link
+        form.state.data = artist.state
+        form.phone.data = artist.phone
+        form.website.data = artist.website
+        form.image_link.data = artist.image_link
+        if artist.seeking_venue:
+            form.seeking_venue.data = artist.seeking_venue
+            form.seeking_description.data = artist.seeking_description
+        return render_template('forms/edit_artist.html', form=form, artist=artist)
+    else:
+        flash('Artist ' + str(artist_id) + ' not found in the database')
+        return render_template('pages/home.html')
 
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
     # TODO: take values from the form submitted, and update existing
     # artist record with ID <artist_id> using the new attributes
+    artist = Artist.query.get(artist_id)
+    data = request.form
+    print(artist)
+    if artist:  # Means that it's not none type, that means there is
+        try:
+            # Convert the seeking_talent to boolean
+            seeking_venue = False
+            if data.get('seeking_venue') == 'y':
+                seeking_venue = True
+            artist.name = data.get('name')
+            artist.city = data.get('city')
+            artist.state = data.get('state')
+            artist.address = data.get('address')
+            artist.phone = data.get('phone')
+            artist.genres = data.getlist('genres')
+            artist.facebook_link = data.get('facebook_link')
+            artist.website = data.get('website')
+            artist.seeking_venue = seeking_venue
+            artist.seeking_description = data.get('seeking_description')
+            artist.image_link = data.get('image_link')
 
-    return redirect(url_for('show_artist', artist_id=artist_id))
+            db.session.commit()
+            flash('Artist ' + request.form['name'] + ' was successfully edited!')
+
+        except:
+            db.session.rollback()
+            print(sys.exc_info())
+            flash('Artist ' + request.form['name'] + ' edit was unsuccessful!')
+        finally:
+            db.session.close()
+        return redirect(url_for('show_artist', artist_id=artist_id))
+    else:
+        return render_template('error/404.html'), 404
 
 
 @app.route('/venues/<int:venue_id>/edit', methods=['GET'])
