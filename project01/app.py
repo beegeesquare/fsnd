@@ -528,18 +528,20 @@ def shows():
     # displays list of shows at /shows
     # replace with real venues data.
     #       num_shows should be aggregated based on number of upcoming shows per venue.
+
     """
     select
-    venue_id,
-    artist_id,
-    "Venue".name venue_name,
-    "Artist".name artist_name,
-    "Artist".image_link artist_image_link
+        venue_id,
+        artist_id,
+        "Venue".name venue_name,
+        "Artist".name artist_name,
+        "Artist".image_link artist_image_link
     from
-    "Show"
+        "Show"
     inner join "Venue" on ("Show".venue_id = "Venue".id)
     left  join "Artist" on ("Show".artist_id = "Artist".id);
     """
+
     # This is 3 tuple with (Show, Artist, Venue) objects
     show_query = db.session.query(Show, Artist, Venue).filter(Show.artist_id ==
                                                               Artist.id).filter(Show.venue_id==Venue.id).all()
@@ -566,11 +568,23 @@ def create_shows():
 def create_show_submission():
     # called to create new shows in the db, upon submitting new show listing form
     # TODO: insert form data as a new Show record in the db, instead
-
-    # on successful db insert, flash success
-    flash('Show was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Show could not be listed.')
+    data = request.form
+    shw = Show()
+    try:
+        shw.venue_id = data.get("venue_id")
+        shw.artist_id = data.get("artist_id")
+        shw.start_time = data.get("start_time")
+        db.session.add(shw)
+        db.session.commit()
+        # on successful db insert, flash success
+        flash('Show for Venue ID' + data.get("venue_id") + ' and Artist ID ' + data.get("artist_id") +
+              ' was successfully listed!')
+    except:
+        db.session.rollback()
+        print(sys.exc_info())
+        flash('An error occurred. Show could not be listed.')
+    finally:
+        db.session.close()
     # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
     return render_template('pages/home.html')
 
