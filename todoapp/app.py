@@ -73,7 +73,7 @@ def create_todo():
     except:
         db.session.rollback()
         error = True
-        print(sys.exec_info())
+        print(sys.exc_info())
     finally:
         db.session.close()
 
