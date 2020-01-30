@@ -376,7 +376,7 @@ def edit_artist(artist_id):
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
-    # TODO: take values from the form submitted, and update existing
+    # take values from the form submitted, and update existing
     # artist record with ID <artist_id> using the new attributes
     artist = Artist.query.get(artist_id)
     data = request.form
@@ -438,10 +438,42 @@ def edit_venue(venue_id):
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
-    # TODO: take values from the form submitted, and update existing
+    # take values from the form submitted, and update existing
     # venue record with ID <venue_id> using the new attributes
-    
-    return redirect(url_for('show_venue', venue_id=venue_id))
+    venue = Venue.query.get(venue_id)
+    data = request.form
+    if venue:  # Means that it's not none type, that means there is
+        try:
+            # Convert the seeking_talent to boolean
+            seeking_talent = False
+            if data.get('seeking_talent') == 'y':
+                seeking_talent = True
+            venue.name = data.get('name')
+            venue.city = data.get('city')
+            venue.state = data.get('state')
+            venue.address = data.get('address')
+            venue.phone = data.get('phone')
+            venue.genres = data.getlist('genres')
+            venue.facebook_link = data.get('facebook_link')
+            venue.website = data.get('website')
+            venue.seeking_talent = seeking_talent
+            venue.seeking_description = data.get('seeking_description')
+            venue.image_link = data.get('image_link')
+
+            db.session.commit()
+            flash('Venue ' + request.form['name'] + ' was successfully edited!')
+
+        except:
+            db.session.rollback()
+            print(sys.exc_info())
+            flash('Venue ' + request.form['name'] + ' edit was unsuccessful!')
+        finally:
+            db.session.close()
+        return redirect(url_for('show_venue', venue_id=venue_id))
+    else:
+        return render_template('error/404.html'), 404
+
+    # return redirect(url_for('show_venue', venue_id=venue_id))
 
 
 #  Create Artist
@@ -457,13 +489,34 @@ def create_artist_form():
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
     # called upon submitting the new artist listing form
-    # TODO: insert form data as a new Venue record in the db, instead
-    # TODO: modify data to be the data object returned from db insertion
+    # insert form data as a new Venue record in the db, instead
+    new_artist = Artist()
+    # modify data to be the data object returned from db insertion
+    data = request.form
+    try:
+        new_artist.name = data.get('name')
+        new_artist.city = data.get('city')
+        new_artist.state = data.get('state')
+        new_artist.phone = data.get('phone')
+        new_artist.genres = data.getlist('genres')
+        new_artist.facebook_link = data.get('facebook_link')
+        new_artist.website = data.get('website')
+        new_artist.image_link = data.get('image_link')
+        new_artist.seeking_venue = False
+        if data.get('seeking_venue') == 'y':
+            new_artist.seeking_venue = True
+            new_artist.seeking_description = data.get('seeking_description')
 
-    # on successful db insert, flash success
-    flash('Artist ' + request.form['name'] + ' was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
+        db.session.add(new_artist)
+        db.session.commit()
+        flash('Artist ' + request.form['name'] + ' was successfully edited !')
+    except:
+        db.session.rollback()
+        print(sys.exc_info())
+        flash('Artist ' + request.form['name'] + ' was unsuccessful!')
+    finally:
+        db.session.close()
+
     return render_template('pages/home.html')
 
 
@@ -511,6 +564,7 @@ def shows():
         "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
         "start_time": "2035-04-15T20:00:00.000Z"
     }]
+    
     return render_template('pages/shows.html', shows=data)
 
 
