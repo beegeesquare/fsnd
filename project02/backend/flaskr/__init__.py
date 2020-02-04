@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import SQLAlchemyError
 from flask_cors import CORS
 import random
+import sys
 
 from models import setup_db, Question, Category, db
 
@@ -47,10 +48,12 @@ def create_app(test_config=None):
     @app.route('/categories')
     def list_categories():
         categories = Category.query.order_by(Category.id).all()
-        data = [c.format() for c in categories] # format method is defined in Category model
-        return jsonify({'success': True, 'categories': data,
-                        'total_categories': len(Category.query.all())
-                        })
+        # data = [c.format() for c in categories] # format method is defined in Category model
+        # return jsonify({'success': True, 'categories': data,
+                        # 'total_categories': len(Category.query.all())
+                        # })
+        # Format has been changed to render the fronend correctly
+        return jsonify({'success':True, 'categories': {c.id: c.type for c in categories}})
 
     '''
     @TODO: 
@@ -92,8 +95,6 @@ def create_app(test_config=None):
         return jsonify({'success': False,
                         'error': 'Question id not found'})
 
-
-
     '''
     @TODO: 
     Create an endpoint to DELETE question using a question ID. 
@@ -110,11 +111,18 @@ def create_app(test_config=None):
         except SQLAlchemyError as e:
             db.session.rollback()
             print(e.__dict__)
+            return jsonify({'success': False,
+                        'question_id': question_id,
+                        'message': 'Error occurred during delete'
+                        })
+
         finally:
             db.session.close()
 
-        return
-
+        return jsonify({'success': True,
+                        'question_id': question_id,
+                        'message': 'Successfully deleted'
+                        })
 
     '''
     @TODO: 
@@ -126,6 +134,27 @@ def create_app(test_config=None):
     the form will clear and the question will appear at the end of the last page
     of the questions list in the "List" tab.  
     '''
+    @app.route('/questions', methods=['POST'])
+    def add_question():
+        data = request.get_json()
+
+        try:
+            new_question = Question(question=data.get('question'),
+                                    answer= data.get('answer'),
+                                    difficulty=data.get('difficulty'),
+                                    category=data.get('category'))
+
+            db.session.add(new_question)
+            db.session.commit()
+        except (KeyError, SQLAlchemyError):
+            print(sys.exc_info())
+            return jsonify({'success': False,
+                            'message': 'Unable to add the entry to the database'})
+        finally:
+            db.session.close()
+
+        return jsonify({'success': True,
+                        'message': 'Question has been added successfully to the database'})
 
     '''
     @TODO: 
@@ -137,6 +166,22 @@ def create_app(test_config=None):
     only question that include that string within their question. 
     Try using the word "title" to start. 
     '''
+    # @app.route('/questions/<str:search_term>', methods=['POST'])
+    #def find_question(search_term):
+    #    return
+    @app.route('/submitSearch', methods=['POST'])
+    def search_question():
+
+        data = request.get_json()  # In the the QuestionView, the data is converted to a json
+        search_term = data['searchTerm']
+
+        # Get all the questions related to the the
+        search_questions = Question.query.filter(Question.question.ilike(r'%{0}%'.format(search_term))).all()
+        current_questions = paginate_questions(request, search_questions)
+
+        return jsonify({'questions': current_questions, 'total_questions': len(search_questions),
+                        'current_category': None})
+
 
     '''
     @TODO: 
@@ -164,5 +209,6 @@ def create_app(test_config=None):
     Create error handlers for all expected errors 
     including 404 and 422. 
     '''
+
 
     return app
