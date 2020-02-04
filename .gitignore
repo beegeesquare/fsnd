@@ -3,3 +3,11 @@
 __pycache__/
 fsnd_udacity_code/
 .DS_Store
+artists_input_data.json
+first_version_artists_data.json
+first_version_venue_data.json
+flask_example/
+project01/app_tmp.py
+project01/data.py
+todoapp/templates/test.js
+venues_input_data.json
