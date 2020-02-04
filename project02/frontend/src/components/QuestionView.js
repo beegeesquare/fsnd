@@ -78,7 +78,7 @@ class QuestionView extends Component {
 
   submitSearch = (searchTerm) => {
     $.ajax({
-      url: `/questions`, //TODO: update request URL
+      url: `/submitSearch`, //updated request URL to route in the backend (__init__.py)
       type: "POST",
       dataType: 'json',
       contentType: 'application/json',
