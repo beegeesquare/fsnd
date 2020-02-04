@@ -191,6 +191,14 @@ def create_app(test_config=None):
     categories in the left column will cause only questions of that 
     category to be shown. 
     '''
+    @app.route('/categories/<int:category_id>/questions')
+    def get_questions_by_category(category_id):
+
+        questions = Question.query.filter_by(category=category_id).all()
+        data = [q.format() for q in questions]
+        return jsonify({'questions': data, 'total_questions': len(questions),
+                        'current_category': None})
+
 
     '''
     @TODO: 
@@ -203,6 +211,9 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not. 
     '''
+    @app.route('/quizzes', methods=['POST'])
+    def quizzes():
+        return
 
     '''
     @TODO: 
