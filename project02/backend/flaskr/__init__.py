@@ -85,15 +85,13 @@ def create_app(test_config=None):
                         
                         })
 
-
     @app.route('/questions/<int:question_id>', methods=['GET'])
     def get_question_id(question_id): # THis is a GET for question if
         question = Question.query.get(question_id)
         if question:
             return jsonify({'success': True,
                             'question': question.format()})
-        return jsonify({'success': False,
-                        'error': 'Question id not found'})
+        return abort(404)
 
     '''
     @TODO: 
@@ -110,11 +108,8 @@ def create_app(test_config=None):
             db.session.commit()
         except SQLAlchemyError as e:
             db.session.rollback()
-            print(e.__dict__)
-            return jsonify({'success': False,
-                        'question_id': question_id,
-                        'message': 'Error occurred during delete'
-                        })
+            # print(e.__dict__)
+            return abort(404)
 
         finally:
             db.session.close()
@@ -148,8 +143,7 @@ def create_app(test_config=None):
             db.session.commit()
         except (KeyError, SQLAlchemyError):
             print(sys.exc_info())
-            return jsonify({'success': False,
-                            'message': 'Unable to add the entry to the database'})
+            return abort(422)
         finally:
             db.session.close()
 
@@ -166,9 +160,6 @@ def create_app(test_config=None):
     only question that include that string within their question. 
     Try using the word "title" to start. 
     '''
-    # @app.route('/questions/<str:search_term>', methods=['POST'])
-    #def find_question(search_term):
-    #    return
     @app.route('/submitSearch', methods=['POST'])
     def search_question():
 
@@ -179,9 +170,8 @@ def create_app(test_config=None):
         search_questions = Question.query.filter(Question.question.ilike(r'%{0}%'.format(search_term))).all()
         current_questions = paginate_questions(request, search_questions)
 
-        return jsonify({'questions': current_questions, 'total_questions': len(search_questions),
+        return jsonify({'success': True, 'questions': current_questions, 'total_questions': len(search_questions),
                         'current_category': None})
-
 
     '''
     @TODO: 
@@ -196,7 +186,7 @@ def create_app(test_config=None):
 
         questions = Question.query.filter_by(category=category_id).all()
         data = [q.format() for q in questions]
-        return jsonify({'questions': data, 'total_questions': len(questions),
+        return jsonify({'success': True, 'questions': data, 'total_questions': len(questions),
                         'current_category': None})
 
 
@@ -213,7 +203,30 @@ def create_app(test_config=None):
     '''
     @app.route('/quizzes', methods=['POST'])
     def quizzes():
-        return
+        data = request.get_json()
+        quiz_category = data.get('quiz_category')['id']
+        # Previous question is a list
+        previous_questions = data.get('previous_questions')
+
+        if quiz_category != 0: # Basically 0 is for all categories
+            # Remove the questions that are in the previous list and then pick a random question
+            questions_category = Question.query.filter_by(category=quiz_category).filter(
+                Question.id.notin_(previous_questions)).all()
+            # print(questions_category, previous_questions)
+        else:
+            # use all categories
+            questions_category = Question.query.filter(Question.id.notin_(previous_questions)).all()
+
+        # Generate a random number between 0 and len(questions) from the category
+        if questions_category: # Means it not empty
+            rnd_nbr = random.randint(0, len(questions_category)-1)
+            random_question = questions_category[rnd_nbr]
+            # format the random question
+            random_question = random_question.format()
+        else:
+            random_question = None
+
+        return jsonify({'success':True, 'question': random_question})
 
     '''
     @TODO: 
@@ -221,5 +234,22 @@ def create_app(test_config=None):
     including 404 and 422. 
     '''
 
+    @app.errorhandler(404)
+    def not_found():
+        error_data = {
+            "success": False,
+            "error": 404,
+            "message": "Resource not available"
+        }
+        return jsonify(error_data)
+
+    @app.errorhandler(422)
+    def not_processed():
+        error_data = {
+            "success": False,
+            "error": 422,
+            "message": "Cannot be processed"
+        }
+        return jsonify(error_data)
 
     return app
