@@ -12,3 +12,4 @@ project01/data.py
 todoapp/templates/test.js
 venues_input_data.json
 node_modules/
+.vscode/
