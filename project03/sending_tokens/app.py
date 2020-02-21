@@ -12,6 +12,10 @@ ALGORITHMS = ['RS256']
 API_AUDIENCE = 'image'
 
 
+# https://jujubee.auth0.com/authorize?audience=image&response_type=token&client_id=UitDOjvQ8jyzTcdPJWjmZvg7YJ3VpYTT&redirect_uri=localhost:8080/login-results
+
+# Note that google-auth0 does not work
+
 class AuthError(Exception):
     def __init__(self, error, status_code):
         self.error = error
@@ -21,6 +25,7 @@ def get_token_auth_header():
     """Obtains the Access Token from the Authorization Header
     """
     auth = request.headers.get('Authorization', None)
+    print(auth)
     if not auth:
         raise AuthError({
             'code': 'authorization_header_missing',
@@ -70,6 +75,7 @@ def get_token_auth_header():
 def verify_decode_jwt(token):
     jsonurl = urlopen(f'https://{AUTH0_DOMAIN}/.well-known/jwks.json')
     jwks = json.loads(jsonurl.read())
+    # print(jwks)
     unverified_header = jwt.get_unverified_header(token)
     rsa_key = {}
     if 'kid' not in unverified_header:
@@ -96,7 +102,6 @@ def verify_decode_jwt(token):
                 audience=API_AUDIENCE,
                 issuer='https://' + AUTH0_DOMAIN + '/'
             )
-
             return payload
 
         except jwt.ExpiredSignatureError:
@@ -120,25 +125,48 @@ def verify_decode_jwt(token):
                 'description': 'Unable to find the appropriate key.'
             }, 400)
 
+
+def check_premission(permission, payload):
+    print(permission, payload)
+    if 'permissions' not in payload:
+        abort(400)
+            
+    if permission not in payload['permissions']:
+        abort(403)
+
+    return True
+
 # Define a decorator
-def requires_auth(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        token = get_token_auth_header()
-        try:
-            payload = verify_decode_jwt(token)
-        except:
-            abort(401)
-        return f(payload, *args, **kwargs)
+def requires_auth(permission=''):
+    def requires_auth_decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            token = get_token_auth_header()
+            try:
+                payload = verify_decode_jwt(token)
+            except:
+                abort(401)
+            
+            check_premission(permission, payload)
+            return f(payload, *args, **kwargs)
 
-    return wrapper
+        return wrapper
 
+    return requires_auth_decorator
 
+'''
 @app.route('/headers')
 @requires_auth
 def headers(jwt):
-    
     jwt = get_token_auth_header()
     print(jwt)
 
     return 'not yet implemented'
+'''
+
+@app.route('/image')
+@requires_auth('get:images')
+def images(jwt):
+    # TODO: unpack the request header
+    print(jwt)
+    return 'not implemented'
