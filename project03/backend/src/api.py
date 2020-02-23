@@ -132,7 +132,6 @@ def update_drink(id):
             'drinks': [drink.long()]
         })
 
-    return abort(404)
 
 '''
 @TODO implement endpoint
