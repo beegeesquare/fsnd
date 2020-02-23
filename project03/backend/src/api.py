@@ -114,16 +114,11 @@ def update_drink(token, id):
 
     drink = Drink.query.get(id)
     data = request.get_json()
-    # From the schema, these are required
-    if data.get('title') is None:
-        abort(400)
-
-    if data.get('recipe') is None:
-        abort(400)
-    
     if drink:
-        drink.title = data.get('title')
-        drink.recipe = json.dumps(data.get('recipe')) # Json dumps is necessary for the drink table to parse
+        if data.get('title') is not None: # If the patch method has no payload for title do not do anything
+            drink.title = data.get('title')
+        if data.get('recipe') is not None: # If the patch method has no payload for recipe do not do anything
+            drink.recipe = json.dumps(data.get('recipe')) # Json dumps is necessary for the drink table to parse
         # Update the respective drink for the given ID
         drink.update()
         
@@ -161,6 +156,14 @@ def remove_drink(token, id):
 '''
 Example error handling for unprocessable entity
 '''
+@app.errorhandler(400)
+def badrequest(error):
+    jsonify({
+                    "success": False, 
+                    "error": 400,
+                    "message": "bad request"
+                    }), 400
+
 @app.errorhandler(422)
 def unprocessable(error):
     return jsonify({
