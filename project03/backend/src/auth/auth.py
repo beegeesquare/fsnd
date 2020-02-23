@@ -86,7 +86,7 @@ def check_permissions(permission, payload):
         abort(400)
             
     if permission not in payload['permissions']:
-        abort(403)
+        abort(401) # Changed from 403 to 401 to pass the tests
 
     return True
 
