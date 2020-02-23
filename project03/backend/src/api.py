@@ -110,7 +110,7 @@ def add_new_drink(token):
 '''
 @app.route('/drinks/<int:id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
-def update_drink(id):
+def update_drink(token, id):
 
     drink = Drink.query.get(id)
     data = request.get_json()
@@ -145,7 +145,7 @@ def update_drink(id):
 '''
 @app.route('/drinks/<int:id>', methods=['DELETE'])
 @requires_auth('delete:drinks')
-def remove_drink(id):
+def remove_drink(token, id):
     drink = Drink.query.get(id)
     if drink: # Means not None
         drink.delete()
