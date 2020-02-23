@@ -43,7 +43,7 @@ def after_request(response):
 @app.route('/drinks', methods=['GET'])
 def get_drinks():
     drinks = Drink.query.all()
-    print(drinks)
+    # print(drinks)
     short_details = [d.short() for d in drinks]
 
     return (jsonify({"success": True, "drinks":short_details}), 
