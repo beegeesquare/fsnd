@@ -12,7 +12,6 @@ ALGORITHMS = ['RS256']
 API_AUDIENCE = 'image'
 
 
-# https://jujubee.auth0.com/authorize?audience=image&response_type=token&client_id=UitDOjvQ8jyzTcdPJWjmZvg7YJ3VpYTT&redirect_uri=localhost:8080/login-results
 
 # Note that google-auth0 does not work
 
