@@ -145,9 +145,17 @@ def update_drink(id):
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks/<int:id>', methods=['DELETE'])
+@requires_auth('delete:drinks')
 def remove_drink(id):
-    
-    return
+    drink = Drink.query.get(id)
+    if drink: # Means not None
+        drink.delete()
+        return jsonify({
+            'success': True,
+            'delete': id
+        })
+
+    return abort(404)
 
 
 ## Error Handling
