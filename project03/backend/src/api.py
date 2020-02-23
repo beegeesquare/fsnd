@@ -78,7 +78,7 @@ def get_drink_details(token):
 @app.route('/drinks', methods=['POST'])
 @requires_auth('post:drinks')
 def add_new_drink(token):
-    print(request.form, request.get_json(), request.get_data())
+    # print(request.form, request.get_json(), request.get_data())
     data = request.get_json()
     
     try:
@@ -89,7 +89,7 @@ def add_new_drink(token):
         # This should add the data to the database table drink
         new_drink.insert()
         return jsonify({'success': True,
-                    'drink': new_drink.long()})
+                    'drink': [new_drink.long()]})
 
     except KeyError:
         print(sys.exc_info())
@@ -109,8 +109,30 @@ def add_new_drink(token):
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks/<int:id>', methods=['PATCH'])
+@requires_auth('patch:drinks')
 def update_drink(id):
-    return
+
+    drink = Drink.query.get(id)
+    data = request.get_json()
+    # From the schema, these are required
+    if data.get('title') is None:
+        abort(400)
+
+    if data.get('recipe') is None:
+        abort(400)
+    
+    if drink:
+        drink.title = data.get('title')
+        drink.recipe = json.dumps(data.get('recipe')) # Json dumps is necessary for the drink table to parse
+        # Update the respective drink for the given ID
+        drink.update()
+        
+        return jsonify({
+            'success': True,
+            'drinks': [drink.long()]
+        })
+
+    return abort(404)
 
 '''
 @TODO implement endpoint
@@ -124,6 +146,7 @@ def update_drink(id):
 '''
 @app.route('/drinks/<int:id>', methods=['DELETE'])
 def remove_drink(id):
+    
     return
 
 
@@ -174,3 +197,10 @@ def notauthorized(AuthError):
 @TODO implement error handler for AuthError
     error handler should conform to general task above 
 '''
+@app.errorhandler(403)
+def nopermissions(error):
+    return jsonify({
+                    "success": False, 
+                    "error": 403,
+                    "message": "Permissions not found"
+                    }), 403
