@@ -3,7 +3,8 @@ from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
-
+from sqlalchemy.exc import SQLAlchemyError
+import sys
 from .database.models import db_drop_and_create_all, setup_db, Drink
 from .auth.auth import AuthError, requires_auth
 
@@ -11,12 +12,23 @@ app = Flask(__name__)
 setup_db(app)
 CORS(app)
 
+# Use the after_request decorator to set Access-Control-Allow
+# Basically this puts the header in the response
+# CORS headers
+@app.after_request
+def after_request(response):
+    # Here it will tell the client if the content requires authorization or not
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
+    # Here in the response it will tell to the client what methods are allowed
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,PATCH,POST,DELETE,OPTIONS')
+    return response
 
 # TODO uncomment the following line to initialize the datbase
 # NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
 # NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 
-db_drop_and_create_all()
+# Disable this after the first run
+# db_drop_and_create_all()
 
 
 ## ROUTES
@@ -31,7 +43,7 @@ db_drop_and_create_all()
 @app.route('/drinks', methods=['GET'])
 def get_drinks():
     drinks = Drink.query.all()
-
+    print(drinks)
     short_details = [d.short() for d in drinks]
 
     return (jsonify({"success": True, "drinks":short_details}), 
@@ -47,7 +59,8 @@ def get_drinks():
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks-detail', methods=['GET'])
-def get_drink_details():
+@requires_auth('get:drinks-detail')
+def get_drink_details(token):
     drinks = Drink.query.all()
     long_details = [d.long() for d in drinks]
 
@@ -63,8 +76,26 @@ def get_drink_details():
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks', methods=['POST'])
-def add_new_drink():
-    return
+@requires_auth('post:drinks')
+def add_new_drink(token):
+    print(request.form, request.get_json(), request.get_data())
+    data = request.get_json()
+    
+    try:
+        # id should auto increment
+        new_drink = Drink(title= data.get('title'),
+                          recipe=json.dumps(data.get('recipe')) # Recipe has to be given as json dump
+                         )
+        # This should add the data to the database table drink
+        new_drink.insert()
+        return jsonify({'success': True,
+                    'drink': new_drink.long()})
+
+    except KeyError:
+        print(sys.exc_info())
+        return abort(422)
+    
+
 
 '''
 @TODO implement endpoint
@@ -130,6 +161,13 @@ def notfound(error):
 @TODO implement error handler for 404
     error handler should conform to general task above 
 '''
+@app.errorhandler(401)
+def notauthorized(AuthError):
+    return jsonify({
+                    "success": False, 
+                    "error": 401,
+                    "message": "Unauthorized"
+                    }), 401
 
 
 '''
