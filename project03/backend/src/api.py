@@ -1,12 +1,13 @@
-import os
+"""
+API's for Coffeeshop app
+"""
 from flask import Flask, request, jsonify, abort
-from sqlalchemy import exc
 import json
 from flask_cors import CORS
-from sqlalchemy.exc import SQLAlchemyError
 import sys
-from .database.models import db_drop_and_create_all, setup_db, Drink
-from .auth.auth import AuthError, requires_auth
+from .database.models import setup_db, Drink
+# from .database.models import db_drop_and_create_all
+from .auth.auth import requires_auth, AuthError
 
 app = Flask(__name__)
 setup_db(app)
@@ -17,13 +18,18 @@ CORS(app)
 # CORS headers
 @app.after_request
 def after_request(response):
+    """
+
+    :param response:
+    :return:
+    """
     # Here it will tell the client if the content requires authorization or not
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
     # Here in the response it will tell to the client what methods are allowed
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,PATCH,POST,DELETE,OPTIONS')
     return response
 
-# TODO uncomment the following line to initialize the datbase
+# uncomment the following line to initialize the datbase
 # NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
 # NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 
@@ -31,9 +37,9 @@ def after_request(response):
 # db_drop_and_create_all()
 
 
-## ROUTES
+# ROUTES
 '''
-@TODO implement endpoint
+@ implement endpoint
     GET /drinks
         it should be a public endpoint
         it should contain only the drink.short() data representation
@@ -42,86 +48,108 @@ def after_request(response):
 '''
 @app.route('/drinks', methods=['GET'])
 def get_drinks():
+    """
+    List the drinks in the menu
+    :return:
+    """
     drinks = Drink.query.all()
     # print(drinks)
     short_details = [d.short() for d in drinks]
 
-    return (jsonify({"success": True, "drinks":short_details}), 
-            200)
+    return jsonify({"success": True, "drinks":short_details})
 
 
 '''
-@TODO implement endpoint
+@implement endpoint
     GET /drinks-detail
-        it should require the 'get:drinks-detail' permission
-        it should contain the drink.long() data representation
+    it should require the 'get:drinks-detail' permission
+    it should contain the drink.long() data representation
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
-        or appropriate status code indicating reason for failure
+    or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks-detail', methods=['GET'])
 @requires_auth('get:drinks-detail')
 def get_drink_details(token):
+    """
+    Gives the brink recipes
+    :param token: This is JWT token required for Bearer authorization
+    :return:
+    """
     drinks = Drink.query.all()
     long_details = [d.long() for d in drinks]
 
-    return (jsonify({"success": True, "drinks": long_details}), 200)
+    return jsonify({"success": True, "drinks": long_details})
+
 
 '''
-@TODO implement endpoint
+@ implement endpoint
     POST /drinks
-        it should create a new row in the drinks table
-        it should require the 'post:drinks' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly created drink
-        or appropriate status code indicating reason for failure
+    it should create a new row in the drinks table
+    it should require the 'post:drinks' permission
+    it should contain the drink.long() data representation
+    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly 
+    created drink
+    or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks', methods=['POST'])
 @requires_auth('post:drinks')
 def add_new_drink(token):
+    """
+    Add new drinks to the menu
+    :param token: This is JWT token required for Bearer authorization
+    :return:
+    """
     # print(request.form, request.get_json(), request.get_data())
     data = request.get_json()
-    
     try:
         # id should auto increment
-        new_drink = Drink(title= data.get('title'),
-                          recipe=json.dumps(data.get('recipe')) # Recipe has to be given as json dump
+        new_drink = Drink(title=data.get('title'),
+                          # Recipe has to be given as json dump
+                          recipe=json.dumps(data.get('recipe'))
                          )
         # This should add the data to the database table drink
         new_drink.insert()
         return jsonify({'success': True,
-                    'drink': [new_drink.long()]})
+                        'drink': [new_drink.long()]})
 
     except KeyError:
         print(sys.exc_info())
         return abort(422)
-    
 
 
 '''
 @TODO implement endpoint
     PATCH /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should update the corresponding row for <id>
-        it should require the 'patch:drinks' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the updated drink
-        or appropriate status code indicating reason for failure
+    where <id> is the existing model id
+    it should respond with a 404 error if <id> is not found
+    it should update the corresponding row for <id>
+    it should require the 'patch:drinks' permission
+    it should contain the drink.long() data representation
+    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the 
+    updated drink
+    or appropriate status code indicating reason for failure
 '''
-@app.route('/drinks/<int:id>', methods=['PATCH'])
+@app.route('/drinks/<int:drink_id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
-def update_drink(token, id):
-
-    drink = Drink.query.get(id)
+def update_drink(token, drink_id):
+    """
+    Edit the drink recipe for the given ID
+    :param token: This is JWT token required for Bearer authorization
+    :param drink_id: This is the ID for the drink in the menu
+    :return:
+    """
+    drink = Drink.query.get(drink_id)
     data = request.get_json()
     if drink:
-        if data.get('title') is not None: # If the patch method has no payload for title do not do anything
+        # If the patch method has no payload for title do not do anything
+        if data.get('title') is not None:
             drink.title = data.get('title')
-        if data.get('recipe') is not None: # If the patch method has no payload for recipe do not do anything
-            drink.recipe = json.dumps(data.get('recipe')) # Json dumps is necessary for the drink table to parse
+        # If the patch method has no payload for recipe do not do anything
+        if data.get('recipe') is not None:
+            # Json dumps is necessary for the drink table to parse
+            drink.recipe = json.dumps(data.get('recipe'))
         # Update the respective drink for the given ID
         drink.update()
-        
         return jsonify({
             'success': True,
             'drinks': [drink.long()]
@@ -131,64 +159,81 @@ def update_drink(token, id):
 '''
 @TODO implement endpoint
     DELETE /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should delete the corresponding row for <id>
-        it should require the 'delete:drinks' permission
+    where <id> is the existing model id
+    it should respond with a 404 error if <id> is not found
+    it should delete the corresponding row for <id>
+    it should require the 'delete:drinks' permission
     returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
-        or appropriate status code indicating reason for failure
+    or appropriate status code indicating reason for failure
 '''
-@app.route('/drinks/<int:id>', methods=['DELETE'])
+@app.route('/drinks/<int:drink_id>', methods=['DELETE'])
 @requires_auth('delete:drinks')
-def remove_drink(token, id):
-    drink = Drink.query.get(id)
+def remove_drink(token, drink_id):
+    """
+    Remove the drink for the menu
+    :param token: This is JWT token required for Bearer authorization
+    :param drink_id: Id for the drink in the menu
+    :return:
+    """
+    drink = Drink.query.get(drink_id)
     if drink: # Means not None
         drink.delete()
         return jsonify({
             'success': True,
-            'delete': id
+            'delete': drink_id
         })
 
     return abort(404)
 
 
-## Error Handling
+# Error Handling
 '''
 Example error handling for unprocessable entity
 '''
 @app.errorhandler(400)
 def badrequest(error):
-    jsonify({
-                    "success": False, 
+    """
+
+    :param error:
+    :return:
+    """
+    return jsonify({"success": False,
                     "error": 400,
-                    "message": "bad request"
-                    }), 400
+                    "message": "bad request"}), 400
+
 
 @app.errorhandler(422)
 def unprocessable(error):
-    return jsonify({
-                    "success": False, 
+    """
+
+    :param error:
+    :return:
+    """
+    return jsonify({"success": False,
                     "error": 422,
-                    "message": "unprocessable"
-                    }), 422
+                    "message": "unprocessable"}), 422
+
 
 '''
-@TODO implement error handlers using the @app.errorhandler(error) decorator
+@ implement error handlers using the @app.errorhandler(error) decorator
     each error handler should return (with approprate messages):
-             jsonify({
-                    "success": False, 
-                    "error": 404,
-                    "message": "resource not found"
-                    }), 404
-
+    jsonify({
+    "success": False, 
+    "error": 404,
+    "message": "resource not found"
+    }), 404
 '''
 @app.errorhandler(404)
 def notfound(error):
-    return jsonify({
-                    "success": False, 
+    """
+
+    :param error:
+    :return:
+    """
+    return jsonify({"success": False,
                     "error": 404,
-                    "message": "resource not found"
-                    }), 404
+                    "message": "resource not found"}), 404
+
 
 '''
 @TODO implement error handler for 404
@@ -196,11 +241,14 @@ def notfound(error):
 '''
 @app.errorhandler(401)
 def notauthorized(AuthError):
-    return jsonify({
-                    "success": False, 
+    """
+
+    :param AuthError:
+    :return:
+    """
+    return jsonify({"success": False,
                     "error": 401,
-                    "message": "Unauthorized"
-                    }), 401
+                    "message": "Unauthorized"}), 401
 
 
 '''
@@ -209,8 +257,11 @@ def notauthorized(AuthError):
 '''
 @app.errorhandler(403)
 def nopermissions(error):
-    return jsonify({
-                    "success": False, 
+    """
+
+    :param error:
+    :return:
+    """
+    return jsonify({"success": False,
                     "error": 403,
-                    "message": "Permissions not found"
-                    }), 403
+                    "message": "Permissions not found"}), 403
