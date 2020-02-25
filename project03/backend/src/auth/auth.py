@@ -27,7 +27,7 @@ class AuthError(Exception):
 
 def get_token_auth_header():
     auth = request.headers.get('Authorization', None)
-
+    # print(auth)
     if not auth:
         abort(401) # Added to get the status code and Post-Man tests to pass
         raise AuthError({
@@ -57,6 +57,7 @@ def get_token_auth_header():
         }, 401)
 
     token = parts[1]
+    # print(token)
     return token
 
 
@@ -146,8 +147,9 @@ def requires_auth(permission=''):
             token = get_token_auth_header()
             try:
                 payload = verify_decode_jwt(token)
-            except:
+            except AuthError:
                 abort(401)
+
             check_permissions(permission, payload)
             return f(payload, *args, **kwargs)
 

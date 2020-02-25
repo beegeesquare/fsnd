@@ -6,9 +6,9 @@ import json
 from flask_cors import CORS
 import sys
 from .database.models import setup_db, Drink
-# from .database.models import db_drop_and_create_all
+from .database.models import db_drop_and_create_all
 from .auth.auth import requires_auth, AuthError
-
+from sqlalchemy.exc import IntegrityError
 app = Flask(__name__)
 setup_db(app)
 CORS(app)
@@ -26,7 +26,7 @@ def after_request(response):
     # Here it will tell the client if the content requires authorization or not
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
     # Here in the response it will tell to the client what methods are allowed
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,PATCH,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PATCH,POST,DELETE')
     return response
 
 # uncomment the following line to initialize the datbase
@@ -34,7 +34,7 @@ def after_request(response):
 # NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 
 # Disable this after the first run
-# db_drop_and_create_all()
+db_drop_and_create_all()
 
 
 # ROUTES
@@ -53,7 +53,7 @@ def get_drinks():
     :return:
     """
     drinks = Drink.query.all()
-    # print(drinks)
+    print(drinks)
     short_details = [d.short() for d in drinks]
 
     return jsonify({"success": True, "drinks":short_details})
@@ -93,6 +93,7 @@ def get_drink_details(token):
 '''
 @app.route('/drinks', methods=['POST'])
 @requires_auth('post:drinks')
+#def add_new_drink():
 def add_new_drink(token):
     """
     Add new drinks to the menu
@@ -101,16 +102,28 @@ def add_new_drink(token):
     """
     # print(request.form, request.get_json(), request.get_data())
     data = request.get_json()
+    # print(data)
     try:
         # id should auto increment
-        new_drink = Drink(title=data.get('title'),
-                          # Recipe has to be given as json dump
-                          recipe=json.dumps(data.get('recipe'))
-                         )
-        # This should add the data to the database table drink
-        new_drink.insert()
-        return jsonify({'success': True,
-                        'drink': [new_drink.long()]})
+        new_recipe = data.get('recipe')
+        new_title = data.get('title')
+        # As per the database schema this title and recipe column cannot be null
+        if (new_title is None) or (new_recipe is None):
+            abort(422)
+
+        if type(new_recipe) is not list:
+            new_recipe = [new_recipe]
+        try:
+            new_drink = Drink(title=data.get('title'),
+                              # Recipe has to be given as json dump
+                              recipe=json.dumps(new_recipe)
+                              )
+            # This should add the data to the database table drink
+            new_drink.insert()
+            return jsonify({'success': True,
+                            'drink': [new_drink.long()]})
+        except IntegrityError: # Names should be unique
+            abort(422)
 
     except KeyError:
         print(sys.exc_info())
