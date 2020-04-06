@@ -23,3 +23,4 @@ cur.execute('''INSERT INTO table2 (id, completed) VALUES (1, true)''');
 conn.commit()
 cur.close()
 conn.close()
+print('test')
